@@ -25,9 +25,9 @@ func (def Definition) String() string {
 	return fmt.Sprintf("%s (%s):\n%s", def.Word, def.PartOfSpeech, def.Definition)
 }
 
-//Uses Oxford Dictionaries Lemmatron API to find the root of a word
-func getRoot(word string) (string, error) {
-	URL := fmt.Sprintf("%s/%s/en/%s", apiURL, "inflections", word)
+func getFromOxfordApi(api string, word string) (responseBody []byte, err error) {
+	URL := fmt.Sprintf("%s/%s/en/%s", apiURL, api, word)
+
 	client := &http.Client{}
 	request, err := http.NewRequest("GET", URL, nil)
 	request.Header.Add("app_id", apiID)
@@ -35,9 +35,19 @@ func getRoot(word string) (string, error) {
 
 	response, err := client.Do(request)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
-	responseBody, err := ioutil.ReadAll(response.Body)
+
+	responseBody, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		return []byte{}, err
+	}
+	return responseBody, nil
+}
+
+//Uses Oxford Dictionaries Lemmatron API to find the root of a word
+func getRoot(word string) (string, error) {
+	responseBody, err := getFromOxfordApi("inflections", word)
 	if err != nil {
 		return "", err
 	}
@@ -47,21 +57,10 @@ func getRoot(word string) (string, error) {
 
 //Retrieves dictionary entry of word using Oxford Dictionaries API
 func getDictionaryEntry(word string) (definition string, partOfSpeech string, err error) {
-	URL := fmt.Sprintf("%s/%s/en/%s", apiURL, "entries", word)
-	client := &http.Client{}
-	request, err := http.NewRequest("GET", URL, nil)
-	request.Header.Add("app_id", apiID)
-	request.Header.Add("app_key", apiKey)
-
-	response, err := client.Do(request)
+	responseBody, err := getFromOxfordApi("entries", word)
 	if err != nil {
-		return "", "", err
+		return "", "",  err
 	}
-	responseBody, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", "", err
-	}
-
 	def := gjson.GetBytes(responseBody, "results.0.lexicalEntries.0.entries.0.senses.0.definitions.0")
 	part := gjson.GetBytes(responseBody, "results.0.lexicalEntries.0.lexicalCategory")
 	return fmt.Sprint(def), fmt.Sprint(part), nil
