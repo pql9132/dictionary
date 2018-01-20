@@ -10,8 +10,8 @@ import (
 
 const (
 	apiURL string = "https://od-api.oxforddictionaries.com/api/v1"
-	apiID  string = //Enter id
-	apiKey string = //Enter key
+	//apiId  string = //Enter ID
+	//apiKey string = //Enter Key
 )
 
 type Definition struct {
